@@ -38,29 +38,48 @@ import { useOrg } from "@/hooks/use-org";
 import { toast } from "sonner";
 import { FileText } from "lucide-react";
 
-function answerIcon(value: AnswerValue) {
+/** Classify any answer value into a semantic category for display */
+function answerCategory(value: AnswerValue): "pass" | "fail" | "na" | "info" {
   switch (value) {
+    case "pass":
+    case "yes":
+      return "pass";
+    case "fail":
+    case "no":
+      return "fail";
+    case "na":
+      return "na";
+    default:
+      // numeric, text, scale, multi — non-empty means answered/pass
+      return value ? "info" : "na";
+  }
+}
+
+function answerIcon(value: AnswerValue) {
+  const cat = answerCategory(value);
+  switch (cat) {
     case "pass":
       return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
     case "fail":
       return <XCircle className="h-4 w-4 text-red-600" />;
     case "na":
       return <MinusCircle className="h-4 w-4 text-slate-400" />;
-    default:
-      return <MinusCircle className="h-4 w-4 text-slate-300" />;
+    case "info":
+      return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
   }
 }
 
 function answerColor(value: AnswerValue): string {
-  switch (value) {
+  const cat = answerCategory(value);
+  switch (cat) {
     case "pass":
       return "bg-emerald-50 text-emerald-700";
     case "fail":
       return "bg-red-50 text-red-700";
     case "na":
       return "bg-slate-100 text-slate-500";
-    default:
-      return "bg-slate-50 text-slate-400";
+    case "info":
+      return "bg-blue-50 text-blue-700";
   }
 }
 
@@ -70,10 +89,14 @@ function answerLabel(value: AnswerValue): string {
       return "Pass";
     case "fail":
       return "Fail";
+    case "yes":
+      return "Yes";
+    case "no":
+      return "No";
     case "na":
       return "N/A";
     default:
-      return value;
+      return value || "—";
   }
 }
 
@@ -250,13 +273,16 @@ export default function InspectionDetailPage() {
 
             // Summary counts for this section
             const passCount = questionIds.filter(
-              (qId) => sectionAnswers.answers[qId] === "pass"
+              (qId) => answerCategory(sectionAnswers.answers[qId]) === "pass"
             ).length;
             const failCount = questionIds.filter(
-              (qId) => sectionAnswers.answers[qId] === "fail"
+              (qId) => answerCategory(sectionAnswers.answers[qId]) === "fail"
             ).length;
             const naCount = questionIds.filter(
-              (qId) => sectionAnswers.answers[qId] === "na"
+              (qId) => answerCategory(sectionAnswers.answers[qId]) === "na"
+            ).length;
+            const infoCount = questionIds.filter(
+              (qId) => answerCategory(sectionAnswers.answers[qId]) === "info"
             ).length;
 
             return (
@@ -278,6 +304,11 @@ export default function InspectionDetailPage() {
                       {naCount > 0 && (
                         <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-xs">
                           {naCount} N/A
+                        </Badge>
+                      )}
+                      {infoCount > 0 && (
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs">
+                          {infoCount} Answered
                         </Badge>
                       )}
                     </div>
