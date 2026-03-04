@@ -30,8 +30,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PhotoGallery } from "@/components/shared/photo-gallery";
 import { exportToCsv } from "@/lib/csv-export";
+import { downloadInspectionPdf } from "@/lib/pdf-report";
+import { useAuth } from "@/lib/auth";
+import { useOrg } from "@/hooks/use-org";
 import { toast } from "sonner";
+import { FileText } from "lucide-react";
 
 function answerIcon(value: AnswerValue) {
   switch (value) {
@@ -75,6 +80,8 @@ function answerLabel(value: AnswerValue): string {
 export default function InspectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { inspection, answers, loading, error } = useInspectionDetail(id);
+  const { profile } = useAuth();
+  const { org } = useOrg();
 
   if (loading) {
     return (
@@ -144,15 +151,27 @@ export default function InspectionDetailPage() {
       <PageHeader
         title={inspection.name}
         actions={
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export inspection report as CSV</TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                downloadInspectionPdf(inspection, answers, org?.name);
+                toast.success("PDF report downloaded");
+              }}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export inspection report as CSV</TooltipContent>
+            </Tooltip>
+          </div>
         }
       />
 
@@ -312,11 +331,14 @@ export default function InspectionDetailPage() {
 
                           {/* Photos */}
                           {photos && photos.length > 0 && (
-                            <div className="mt-2 ml-6 flex items-center gap-1.5">
-                              <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-xs text-muted-foreground">
-                                {photos.length} photo{photos.length !== 1 ? "s" : ""} attached
-                              </span>
+                            <div className="mt-2 ml-6">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <Camera className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-xs text-muted-foreground">
+                                  {photos.length} photo{photos.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <PhotoGallery paths={photos} />
                             </div>
                           )}
                         </div>

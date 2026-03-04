@@ -12,6 +12,7 @@ export const routes = {
   templates: "/templates",
   reports: "/reports",
   schedules: "/schedules",
+  incidents: "/incidents",
   settings: "/settings",
   auditLog: "/audit-log",
   login: "/login",
@@ -26,6 +27,7 @@ export const collections = {
   sites: "sites",
   correctiveActions: "corrective_actions",
   schedules: "schedules",
+  incidents: "incidents",
   auditLog: "audit_log",
 } as const;
 

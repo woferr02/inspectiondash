@@ -164,6 +164,33 @@ export interface InspectionAnswer {
   photos: Record<string, string[]>;     // questionId → photo paths
 }
 
+// ─── Incidents ───
+
+export type IncidentType = "accident" | "near_miss" | "dangerous_occurrence" | "ill_health" | "environmental" | "property_damage" | "other";
+export type IncidentSeverity = "minor" | "moderate" | "major" | "fatal";
+export type IncidentStatus = "reported" | "investigating" | "corrective_action" | "closed";
+
+export interface Incident {
+  id: string;
+  title: string;
+  description: string;
+  type: IncidentType;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
+  siteId: string;
+  siteName: string;
+  reportedBy: string;
+  reportedByEmail: string;
+  reportedAt: string; // ISO 8601
+  occurredAt: string; // ISO 8601
+  injuredPersons: number;
+  riddorReportable: boolean;
+  immediateActions: string;
+  rootCause: string;
+  assignee: string;
+  closedAt: string | null; // ISO 8601
+}
+
 // ─── Dashboard-specific derived types ───
 
 export interface KpiData {

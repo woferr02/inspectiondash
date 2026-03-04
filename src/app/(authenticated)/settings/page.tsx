@@ -1,13 +1,17 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/hooks/use-org";
-import { Building2, User, Shield, Briefcase, Globe, CreditCard } from "lucide-react";
+import { updateUserProfile, updateOrgName, writeAuditEntry } from "@/lib/firestore";
+import { Building2, User, Shield, Briefcase, Globe, CreditCard, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 function tierLabel(tier?: string): string {
   switch (tier) {
@@ -36,20 +40,101 @@ function tierColor(tier?: string): string {
 }
 
 export default function SettingsPage() {
-  const { profile } = useAuth();
-  const { org, currentUserRole, error } = useOrg();
+  const { user, profile } = useAuth();
+  const { org, currentUserRole, isAdmin, error } = useOrg();
+
+  // ─── Profile form state ───
+  const [displayName, setDisplayName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [company, setCompany] = useState("");
+  const [country, setCountry] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // ─── Org form state ───
+  const [orgName, setOrgName] = useState("");
+  const [orgDirty, setOrgDirty] = useState(false);
+  const [orgSaving, setOrgSaving] = useState(false);
+
+  // Sync from profile
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.displayName ?? "");
+      setJobTitle(profile.jobTitle ?? "");
+      setCompany(profile.company ?? "");
+      setCountry(profile.country ?? "");
+      setIndustry(profile.industry ?? "");
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (org) setOrgName(org.name ?? "");
+  }, [org]);
+
+  // Dirty detection
+  useEffect(() => {
+    if (!profile) return;
+    setProfileDirty(
+      displayName !== (profile.displayName ?? "") ||
+      jobTitle !== (profile.jobTitle ?? "") ||
+      company !== (profile.company ?? "") ||
+      country !== (profile.country ?? "") ||
+      industry !== (profile.industry ?? "")
+    );
+  }, [displayName, jobTitle, company, country, industry, profile]);
+
+  useEffect(() => {
+    if (!org) return;
+    setOrgDirty(orgName !== (org.name ?? ""));
+  }, [orgName, org]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setProfileSaving(true);
+    try {
+      await updateUserProfile(user.uid, {
+        displayName: displayName.trim(),
+        jobTitle: jobTitle.trim(),
+        company: company.trim(),
+        country: country.trim(),
+        industry: industry.trim(),
+      });
+      toast.success("Profile updated");
+      setProfileDirty(false);
+    } catch {
+      toast.error("Failed to update profile");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleSaveOrg = async () => {
+    if (!profile?.orgId || !user) return;
+    setOrgSaving(true);
+    try {
+      await updateOrgName(profile.orgId, orgName.trim());
+      await writeAuditEntry(profile.orgId, {
+        action: "orgUpdated" as any,
+        userId: user.uid,
+        userEmail: profile.email ?? "",
+        targetId: profile.orgId,
+        description: `Updated organization name to "${orgName.trim()}"`,
+      });
+      toast.success("Organization name updated");
+      setOrgDirty(false);
+    } catch {
+      toast.error("Failed to update organization name");
+    } finally {
+      setOrgSaving(false);
+    }
+  };
 
   const tier = profile?.subscriptionTier;
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Manage your organization and preferences" />
-
-      {/* Read-only notice */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-300">
-        <strong>Read-only</strong> — Organization and profile settings are managed from the
-        SafeCheck Pro mobile app. Changes made there will be reflected here.
-      </div>
+      <PageHeader title="Settings" subtitle="Manage your organization and profile" />
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400">
@@ -60,16 +145,32 @@ export default function SettingsPage() {
       {/* Organization */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">Organization</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Organization</CardTitle>
+            </div>
+            {isAdmin && orgDirty && (
+              <Button size="sm" onClick={handleSaveOrg} disabled={orgSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                {orgSaving ? "Saving..." : "Save"}
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Organization Name</label>
-              <Input value={org?.name ?? ""} readOnly className="bg-muted" />
+              {isAdmin ? (
+                <Input
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Organization name"
+                />
+              ) : (
+                <Input value={org?.name ?? ""} readOnly className="bg-muted" />
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Organization ID</label>
@@ -92,49 +193,69 @@ export default function SettingsPage() {
       {/* Profile */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-base">Profile</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Profile</CardTitle>
+            </div>
+            {profileDirty && (
+              <Button size="sm" onClick={handleSaveProfile} disabled={profileSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                {profileSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Display Name</label>
-              <Input value={profile?.displayName ?? ""} readOnly className="bg-muted" />
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
               <Input value={profile?.email ?? ""} readOnly className="bg-muted" />
+              <p className="text-xs text-muted-foreground">Email cannot be changed here</p>
             </div>
-            {profile?.jobTitle && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-1.5">
-                  <Briefcase className="h-3.5 w-3.5" /> Job Title
-                </label>
-                <Input value={profile.jobTitle} readOnly className="bg-muted" />
-              </div>
-            )}
-            {profile?.country && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5" /> Country
-                </label>
-                <Input value={profile.country} readOnly className="bg-muted" />
-              </div>
-            )}
-            {profile?.industry && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Industry</label>
-                <Input value={profile.industry} readOnly className="bg-muted" />
-              </div>
-            )}
-            {profile?.company && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Company</label>
-                <Input value={profile.company} readOnly className="bg-muted" />
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" /> Job Title
+              </label>
+              <Input
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                placeholder="e.g. Health & Safety Manager"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5" /> Country
+              </label>
+              <Input
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                placeholder="e.g. United Kingdom"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Industry</label>
+              <Input
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                placeholder="e.g. Construction"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Company</label>
+              <Input
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="e.g. Acme Safety Ltd"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -19,6 +19,7 @@ import {
   Shield,
   ScrollText,
   Search,
+  ShieldAlert,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -55,6 +56,7 @@ export const navItems: NavItem[] = [
   { label: "Templates", href: routes.templates, icon: FileText, minRole: "manager" },
   { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager" },
   { label: "Reports", href: routes.reports, icon: FileBarChart, minRole: "manager" },
+  { label: "Incidents", href: routes.incidents, icon: ShieldAlert, minRole: "inspector" },
   { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin" },
   { label: "Settings", href: routes.settings, icon: Settings, minRole: "admin" },
 ];

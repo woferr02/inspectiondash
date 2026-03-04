@@ -22,9 +22,11 @@ import type {
   CorrectiveAction,
   AuditEntry,
   Schedule,
+  Incident,
   InspectionAnswer,
   ActionStatus,
   ActionSeverity,
+  IncidentStatus,
   OrgRole,
 } from "./types";
 
@@ -425,4 +427,91 @@ export async function deleteSchedule(
 ): Promise<void> {
   const ref = doc(db, "organizations", orgId, "schedules", scheduleId);
   await deleteDoc(ref);
+}
+
+// ─── Incident operations ───
+
+/** Listen to incidents in real time. */
+export function listenIncidents(
+  orgId: string,
+  callback: (incidents: Incident[]) => void,
+  onError?: (err: Error) => void
+) {
+  const q = query(
+    orgCollection(orgId, "incidents"),
+    orderBy("reportedAt", "desc"),
+    limit(500)
+  );
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map((d) => normalizeDoc<Incident>(d.data(), d.id))),
+    onError
+  );
+}
+
+/** Create a new incident. Returns the generated document ID. */
+export async function addIncident(
+  orgId: string,
+  data: Omit<Incident, "id" | "closedAt"> & { closedAt?: string | null }
+): Promise<string> {
+  const colRef = orgCollection(orgId, "incidents");
+  const docRef = await addDoc(colRef, {
+    ...data,
+    closedAt: null,
+    createdAt: new Date().toISOString(),
+  });
+  return docRef.id;
+}
+
+/** Update an incident's status. */
+export async function updateIncidentStatus(
+  orgId: string,
+  incidentId: string,
+  status: IncidentStatus
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "incidents", incidentId);
+  const updates: Record<string, unknown> = { status };
+  if (status === "closed") {
+    updates.closedAt = new Date().toISOString();
+  }
+  await updateDoc(ref, updates);
+}
+
+/** Update incident fields (partial update). */
+export async function updateIncident(
+  orgId: string,
+  incidentId: string,
+  data: Partial<Omit<Incident, "id">>
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "incidents", incidentId);
+  await updateDoc(ref, data as DocumentData);
+}
+
+/** Delete an incident. */
+export async function deleteIncident(
+  orgId: string,
+  incidentId: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "incidents", incidentId);
+  await deleteDoc(ref);
+}
+
+// ─── Profile update ───
+
+/** Update the current user's profile fields. */
+export async function updateUserProfile(
+  uid: string,
+  data: Partial<{ displayName: string; jobTitle: string; company: string; country: string; industry: string }>
+): Promise<void> {
+  const ref = doc(db, "users", uid);
+  await updateDoc(ref, data as DocumentData);
+}
+
+/** Update organization name. */
+export async function updateOrgName(
+  orgId: string,
+  name: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId);
+  await updateDoc(ref, { name });
 }
