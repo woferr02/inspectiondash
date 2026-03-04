@@ -128,7 +128,7 @@ export interface Schedule {
   siteId: string;
   frequency: string; // "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannual" | "annual"
   nextDue: string; // ISO 8601
-  assignee: string;
+  assignee?: string;
   templateName?: string;
   siteName?: string;
   assigneeId?: string;
