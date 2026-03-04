@@ -12,8 +12,6 @@ import {
   AlertTriangle,
   BarChart3,
   Users,
-  FileText,
-  FileBarChart,
   Calendar,
   Settings,
   Shield,
@@ -54,13 +52,11 @@ export const navItems: NavItem[] = [
   { label: "Sites", href: routes.sites, icon: MapPin, minRole: "inspector" },
   { label: "Actions", href: routes.actions, icon: AlertTriangle, minRole: "inspector" },
   { label: "Incidents", href: routes.incidents, icon: ShieldAlert, minRole: "inspector" },
-  // ── Intelligence & Reporting ──
+  // ── Intelligence ──
   { label: "Findings", href: routes.findings, icon: Search, minRole: "manager", separator: true },
   { label: "Analytics", href: routes.analytics, icon: BarChart3, minRole: "manager" },
-  { label: "Reports", href: routes.reports, icon: FileBarChart, minRole: "manager" },
   // ── Configuration ──
-  { label: "Templates", href: routes.templates, icon: FileText, minRole: "manager", separator: true },
-  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager" },
+  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager", separator: true },
   { label: "Team", href: routes.team, icon: Users, minRole: "admin" },
   // ── Admin ──
   { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin", separator: true },

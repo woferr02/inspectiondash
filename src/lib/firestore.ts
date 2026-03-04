@@ -311,6 +311,9 @@ export async function addSite(
     lastInspectionDate: null,
     createdAt: new Date().toISOString(),
   });
+  // Write the Firestore document ID into the `id` field so the Flutter app
+  // can read it via Site.fromJson (expects json['id']).
+  await updateDoc(docRef, { id: docRef.id });
   return docRef.id;
 }
 
