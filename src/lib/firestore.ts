@@ -7,6 +7,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
   type DocumentData,
   Timestamp,
 } from "firebase/firestore";
@@ -18,6 +23,8 @@ import type {
   AuditEntry,
   Schedule,
   InspectionAnswer,
+  ActionStatus,
+  OrgRole,
 } from "./types";
 
 // ─── Helpers ───
@@ -192,4 +199,88 @@ export async function getInspectionAnswers(
     )
   );
   return snap.docs.map((d) => normalizeDoc<InspectionAnswer>(d.data(), d.id));
+}
+
+// ─── Write operations ───
+
+/** Update a corrective action's status (and resolvedAt when applicable). */
+export async function updateActionStatus(
+  orgId: string,
+  actionId: string,
+  status: ActionStatus,
+  resolvedAt?: string | null
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "corrective_actions", actionId);
+  const updates: Record<string, unknown> = { status };
+  if (status === "resolved" && !resolvedAt) {
+    updates.resolvedAt = new Date().toISOString();
+  } else if (resolvedAt !== undefined) {
+    updates.resolvedAt = resolvedAt;
+  }
+  await updateDoc(ref, updates);
+}
+
+/** Update a corrective action's assignee. */
+export async function updateActionAssignee(
+  orgId: string,
+  actionId: string,
+  assignee: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "corrective_actions", actionId);
+  await updateDoc(ref, { assignee });
+}
+
+/** Invite a member (creates a pending member doc). */
+export async function inviteMember(
+  orgId: string,
+  email: string,
+  role: OrgRole
+): Promise<string> {
+  const memberId = `pending-${Date.now()}`;
+  const ref = doc(db, "organizations", orgId, "members", memberId);
+  await setDoc(ref, {
+    userId: memberId,
+    email,
+    displayName: "",
+    role,
+    joinedAt: new Date().toISOString(),
+  });
+  return memberId;
+}
+
+/** Update a member's role. */
+export async function updateMemberRole(
+  orgId: string,
+  memberId: string,
+  role: OrgRole
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "members", memberId);
+  await updateDoc(ref, { role });
+}
+
+/** Remove a member from the organization. */
+export async function removeMember(
+  orgId: string,
+  memberId: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "members", memberId);
+  await deleteDoc(ref);
+}
+
+/** Write an audit log entry from the dashboard. */
+export async function writeAuditEntry(
+  orgId: string,
+  entry: {
+    action: string;
+    userId: string;
+    userEmail: string;
+    targetId: string;
+    description: string;
+  }
+): Promise<void> {
+  const colRef = collection(db, "organizations", orgId, "audit_log");
+  await addDoc(colRef, {
+    ...entry,
+    timestamp: new Date().toISOString(),
+  });
 }

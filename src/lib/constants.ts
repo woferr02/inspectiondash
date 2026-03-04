@@ -6,6 +6,7 @@ export const routes = {
   sites: "/sites",
   siteDetail: (id: string) => `/sites/${id}`,
   actions: "/actions",
+  findings: "/findings",
   analytics: "/analytics",
   team: "/team",
   templates: "/templates",

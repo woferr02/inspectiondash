@@ -6,8 +6,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { RecentInspections } from "@/components/dashboard/recent-inspections";
 import { ActionSummary } from "@/components/dashboard/action-summary";
+import { ScoreBadge } from "@/components/shared/score-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useSites } from "@/hooks/use-sites";
+import { useActions } from "@/hooks/use-actions";
 import {
   KpiCardSkeleton,
   ChartSkeleton,
@@ -20,15 +24,30 @@ import {
   Clock,
   CheckCircle2,
   TrendingDown,
+  MapPin,
 } from "lucide-react";
 import { subDays, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const kpiIcons = [ClipboardCheck, Target, AlertTriangle, Clock];
 const kpiHrefs = ["/inspections", "/analytics", "/actions", "/actions"];
 
+interface SiteRisk {
+  id: string;
+  name: string;
+  latestScore: number | null;
+  openActions: number;
+  overdueActions: number;
+  riskScore: number; // composite: lower is worse
+}
+
 export default function DashboardPage() {
-  const { kpis, actionSummary, inspections, loading, error } =
+  const { kpis, actionSummary, inspections, loading: analyticsLoading, error } =
     useAnalytics();
+  const { sites, loading: sitesLoading } = useSites();
+  const { actions, loading: actionsLoading } = useActions();
+
+  const loading = analyticsLoading || sitesLoading || actionsLoading;
 
   const attentionItems = useMemo(() => {
     const cutoff = subDays(new Date(), 7);
@@ -41,6 +60,45 @@ export default function DashboardPage() {
     });
     return { recentFailed };
   }, [inspections]);
+
+  /** Sites ranked by composite risk: low score + open/overdue actions = higher risk. */
+  const siteRiskRanking = useMemo(() => {
+    if (sites.length === 0) return [];
+
+    const now = new Date().toISOString();
+    const ranking: SiteRisk[] = sites.map((site) => {
+      // Latest inspection score for this site
+      const siteInspections = inspections.filter(
+        (i) => (i.siteId && i.siteId === site.id) || (!i.siteId && i.siteName === site.name)
+      );
+      const latest = siteInspections[0]; // already sorted desc by date
+      const latestScore = latest?.score ?? null;
+
+      // Open/overdue actions for this site
+      const siteActions = actions.filter((a) => {
+        const insp = inspections.find((i) => i.id === a.inspectionId);
+        return insp && ((insp.siteId && insp.siteId === site.id) || (!insp.siteId && insp.siteName === site.name));
+      });
+      const openActions = siteActions.filter(
+        (a) => a.status === "open" || a.status === "inProgress"
+      ).length;
+      const overdueActions = siteActions.filter(
+        (a) =>
+          (a.status === "open" || a.status === "inProgress") &&
+          a.dueDate &&
+          a.dueDate < now
+      ).length;
+
+      // Composite risk score: 0 = highest risk, 100 = lowest risk
+      const scoreComponent = latestScore !== null ? latestScore : 50;
+      const actionPenalty = Math.min(openActions * 5 + overdueActions * 15, 50);
+      const riskScore = Math.max(0, scoreComponent - actionPenalty);
+
+      return { id: site.id, name: site.name, latestScore, openActions, overdueActions, riskScore };
+    });
+
+    return ranking.sort((a, b) => a.riskScore - b.riskScore).slice(0, 10);
+  }, [sites, inspections, actions]);
 
   return (
     <div className="space-y-6">
@@ -64,7 +122,7 @@ export default function DashboardPage() {
             ))}
       </div>
 
-      {/* Needs Attention + Actions */}
+      {/* Needs Attention + Actions row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {loading ? (
@@ -148,6 +206,51 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Site Risk Ranking */}
+      {!loading && siteRiskRanking.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Sites by Risk Level</CardTitle>
+              </div>
+              <Link href="/sites" className="text-xs text-primary hover:underline">
+                View all sites
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {siteRiskRanking.map((site) => (
+                <Link
+                  key={site.id}
+                  href={`/sites/${site.id}`}
+                  className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-sm font-medium truncate">{site.name}</span>
+                    {site.overdueActions > 0 && (
+                      <Badge variant="secondary" className="bg-red-50 text-red-700 text-xs dark:bg-red-950/30 dark:text-red-400">
+                        {site.overdueActions} overdue
+                      </Badge>
+                    )}
+                    {site.openActions > 0 && site.overdueActions === 0 && (
+                      <Badge variant="secondary" className="bg-amber-50 text-amber-700 text-xs dark:bg-amber-950/30 dark:text-amber-400">
+                        {site.openActions} open
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <ScoreBadge score={site.latestScore} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent inspections */}
       {loading ? (

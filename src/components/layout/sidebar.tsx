@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { routes } from "@/lib/constants";
+import { useOrg } from "@/hooks/use-org";
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -17,29 +18,50 @@ import {
   Settings,
   Shield,
   ScrollText,
+  Search,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { OrgRole } from "@/lib/types";
 
-export const navItems = [
-  { label: "Overview", href: routes.dashboard, icon: LayoutDashboard },
-  { label: "Inspections", href: routes.inspections, icon: ClipboardCheck },
-  { label: "Sites", href: routes.sites, icon: MapPin },
-  { label: "Actions", href: routes.actions, icon: AlertTriangle },
-  { label: "Analytics", href: routes.analytics, icon: BarChart3 },
-  { label: "Team", href: routes.team, icon: Users },
-  { label: "Templates", href: routes.templates, icon: FileText },
-  { label: "Schedules", href: routes.schedules, icon: Calendar },
-  { label: "Reports", href: routes.reports, icon: FileBarChart },
-  { label: "Audit Log", href: routes.auditLog, icon: ScrollText },
-  { label: "Settings", href: routes.settings, icon: Settings },
+/** Minimum role required to see a nav item. "inspector" means everyone sees it. */
+type NavItem = {
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  minRole: OrgRole;
+};
+
+const ROLE_RANK: Record<OrgRole, number> = {
+  inspector: 0,
+  manager: 1,
+  admin: 2,
+};
+
+export const navItems: NavItem[] = [
+  { label: "Overview", href: routes.dashboard, icon: LayoutDashboard, minRole: "inspector" },
+  { label: "Inspections", href: routes.inspections, icon: ClipboardCheck, minRole: "inspector" },
+  { label: "Sites", href: routes.sites, icon: MapPin, minRole: "inspector" },
+  { label: "Actions", href: routes.actions, icon: AlertTriangle, minRole: "inspector" },
+  { label: "Findings", href: routes.findings, icon: Search, minRole: "manager" },
+  { label: "Analytics", href: routes.analytics, icon: BarChart3, minRole: "manager" },
+  { label: "Team", href: routes.team, icon: Users, minRole: "admin" },
+  { label: "Templates", href: routes.templates, icon: FileText, minRole: "manager" },
+  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager" },
+  { label: "Reports", href: routes.reports, icon: FileBarChart, minRole: "manager" },
+  { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin" },
+  { label: "Settings", href: routes.settings, icon: Settings, minRole: "admin" },
 ];
+
+function hasAccess(userRole: OrgRole | null | undefined, minRole: OrgRole): boolean {
+  return ROLE_RANK[userRole ?? "inspector"] >= ROLE_RANK[minRole];
+}
 
 /* Shared nav link list – used by both desktop Sidebar and MobileSidebar */
 export function NavLinks({
@@ -50,10 +72,16 @@ export function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const { currentUserRole } = useOrg();
+
+  const visibleItems = useMemo(
+    () => navItems.filter((item) => hasAccess(currentUserRole, item.minRole)),
+    [currentUserRole]
+  );
 
   return (
     <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const isActive =
           item.href === "/"
             ? pathname === "/"

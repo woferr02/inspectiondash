@@ -126,7 +126,7 @@ export interface Schedule {
   id: string;
   templateId: string;
   siteId: string;
-  frequency: string; // "daily" | "weekly" | "monthly" | "quarterly" | "annual"
+  frequency: string; // "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannual" | "annual"
   nextDue: string; // ISO 8601
   assignee: string;
   templateName?: string;

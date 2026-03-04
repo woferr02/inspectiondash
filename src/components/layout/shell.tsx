@@ -42,7 +42,10 @@ export function Shell({ children }: ShellProps) {
   if (!user) return null;
 
   // No org / not business tier — gate page
-  if (!profile?.orgId) {
+  const hasTier = profile?.subscriptionTier === "business" || profile?.subscriptionTier === "pro";
+  if (!profile?.orgId || !hasTier) {
+    const missingOrg = !profile?.orgId;
+    const missingTier = !hasTier;
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
         <div className="max-w-lg text-center space-y-4">
@@ -53,15 +56,20 @@ export function Shell({ children }: ShellProps) {
             Dashboard Access Required
           </h2>
           <p className="text-sm text-muted-foreground">
-            The web dashboard requires an active Business subscription and an
-            organization linked to your account.
+            {missingTier
+              ? "The web dashboard requires a Pro or Business subscription."
+              : "Your account needs an organization to access the dashboard."}
           </p>
           <div className="mx-auto max-w-sm rounded-lg border bg-card p-4 text-left space-y-3 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">To get started:</p>
             <ol className="list-decimal list-inside space-y-1.5">
               <li>Open the <strong>SafeCheck Pro</strong> mobile app</li>
-              <li>Subscribe to the <strong>Business</strong> tier</li>
-              <li>Create or join an <strong>organization</strong></li>
+              {missingTier && (
+                <li>Subscribe to the <strong>Pro</strong> or <strong>Business</strong> tier</li>
+              )}
+              {missingOrg && (
+                <li>Create or join an <strong>organization</strong></li>
+              )}
               <li>Return here and sign in with the same account</li>
             </ol>
           </div>
