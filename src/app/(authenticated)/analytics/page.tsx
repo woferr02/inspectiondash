@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Analytics"
         subtitle="Compliance intelligence and performance insights"

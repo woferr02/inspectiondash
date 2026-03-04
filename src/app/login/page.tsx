@@ -55,7 +55,7 @@ export default function LoginPage() {
               SafeCheck Pro
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Dashboard — Business tier
+              Compliance Dashboard
             </p>
           </div>
         </CardHeader>

@@ -119,7 +119,12 @@ export default function InspectionsPage() {
     toast.success("Inspections exported to CSV");
   };
 
-  if (loading) return <TableSkeleton rows={10} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Inspections" subtitle="Loading inspections…" />
+      <TableSkeleton rows={10} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

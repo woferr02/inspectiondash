@@ -37,6 +37,8 @@ type NavItem = {
   href: string;
   icon: typeof LayoutDashboard;
   minRole: OrgRole;
+  /** When true, renders a subtle separator line ABOVE this item */
+  separator?: boolean;
 };
 
 const ROLE_RANK: Record<OrgRole, number> = {
@@ -46,18 +48,22 @@ const ROLE_RANK: Record<OrgRole, number> = {
 };
 
 export const navItems: NavItem[] = [
+  // ── Daily Operations ──
   { label: "Overview", href: routes.dashboard, icon: LayoutDashboard, minRole: "inspector" },
   { label: "Inspections", href: routes.inspections, icon: ClipboardCheck, minRole: "inspector" },
   { label: "Sites", href: routes.sites, icon: MapPin, minRole: "inspector" },
   { label: "Actions", href: routes.actions, icon: AlertTriangle, minRole: "inspector" },
-  { label: "Findings", href: routes.findings, icon: Search, minRole: "manager" },
-  { label: "Analytics", href: routes.analytics, icon: BarChart3, minRole: "manager" },
-  { label: "Team", href: routes.team, icon: Users, minRole: "admin" },
-  { label: "Templates", href: routes.templates, icon: FileText, minRole: "manager" },
-  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager" },
-  { label: "Reports", href: routes.reports, icon: FileBarChart, minRole: "manager" },
   { label: "Incidents", href: routes.incidents, icon: ShieldAlert, minRole: "inspector" },
-  { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin" },
+  // ── Intelligence & Reporting ──
+  { label: "Findings", href: routes.findings, icon: Search, minRole: "manager", separator: true },
+  { label: "Analytics", href: routes.analytics, icon: BarChart3, minRole: "manager" },
+  { label: "Reports", href: routes.reports, icon: FileBarChart, minRole: "manager" },
+  // ── Configuration ──
+  { label: "Templates", href: routes.templates, icon: FileText, minRole: "manager", separator: true },
+  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager" },
+  { label: "Team", href: routes.team, icon: Users, minRole: "admin" },
+  // ── Admin ──
+  { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin", separator: true },
   { label: "Settings", href: routes.settings, icon: Settings, minRole: "admin" },
 ];
 
@@ -82,12 +88,15 @@ export function NavLinks({
   );
 
   return (
-    <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
-      {visibleItems.map((item) => {
+    <nav className="flex-1 px-2 py-4 overflow-y-auto">
+      {visibleItems.map((item, idx) => {
         const isActive =
           item.href === "/"
             ? pathname === "/"
             : pathname.startsWith(item.href);
+
+        // Check if this item is the first visible one with a separator
+        const showSep = item.separator && idx > 0;
 
         const linkContent = (
           <Link
@@ -106,18 +115,30 @@ export function NavLinks({
           </Link>
         );
 
+        const separator = showSep ? (
+          <div className="my-2 mx-3 border-t border-sidebar-border/40" />
+        ) : null;
+
         if (collapsed) {
           return (
-            <Tooltip key={item.href} delayDuration={0}>
-              <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8}>
-                {item.label}
-              </TooltipContent>
-            </Tooltip>
+            <div key={item.href}>
+              {separator}
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           );
         }
 
-        return <div key={item.href}>{linkContent}</div>;
+        return (
+          <div key={item.href}>
+            {separator}
+            {linkContent}
+          </div>
+        );
       })}
     </nav>
   );

@@ -622,7 +622,12 @@ export default function ActionsPage() {
     toast.success("Actions exported to CSV");
   };
 
-  if (loading) return <TableSkeleton rows={8} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Corrective Actions" subtitle="Loading actions…" />
+      <TableSkeleton rows={8} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
