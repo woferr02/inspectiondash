@@ -1,10 +1,29 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Breadcrumbs } from "@/components/shared/breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -14,14 +33,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScoreBadge } from "@/components/shared/score-badge";
-import { InspectionStatusBadge, SeverityBadge, ActionStatusBadge } from "@/components/shared/status-badge";
+import { InspectionStatusBadge, SeverityBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Separator } from "@/components/ui/separator";
 import { useSites } from "@/hooks/use-sites";
 import { useInspections } from "@/hooks/use-inspections";
 import { useActions } from "@/hooks/use-actions";
+import { useOrg } from "@/hooks/use-org";
+import { useAuth } from "@/lib/auth";
+import { updateSite, deleteSite, updateActionStatus, writeAuditEntry } from "@/lib/firestore";
 import { formatDate, cn } from "@/lib/utils";
-import { useParams } from "next/navigation";
+import type { ActionStatus } from "@/lib/types";
+import { useParams, useRouter } from "next/navigation";
 import {
   MapPin,
   Phone,
@@ -31,8 +54,11 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   ResponsiveContainer,
   LineChart,
@@ -43,11 +69,176 @@ import {
   Tooltip,
 } from "recharts";
 
+/* ─── Inline Action Status Select ─── */
+function ActionStatusSelect({
+  actionId,
+  current,
+  orgId,
+  userId,
+  userEmail,
+}: {
+  actionId: string;
+  current: ActionStatus;
+  orgId: string;
+  userId: string;
+  userEmail: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const handleChange = async (val: string) => {
+    if (val === current) return;
+    setBusy(true);
+    try {
+      await updateActionStatus(orgId, actionId, val as ActionStatus);
+      await writeAuditEntry(orgId, {
+        action: "actionStatusChanged",
+        userId,
+        userEmail,
+        targetId: actionId,
+        description: `Changed action status from ${current} to ${val}`,
+      });
+      toast.success(`Status → ${val}`);
+    } catch {
+      toast.error("Failed to update status");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const colorMap: Record<string, string> = {
+    open: "text-red-600",
+    inProgress: "text-amber-600",
+    resolved: "text-blue-600",
+    closed: "text-emerald-600",
+  };
+
+  return (
+    <Select value={current} onValueChange={handleChange} disabled={busy}>
+      <SelectTrigger className={cn("h-7 w-[120px] text-xs border-dashed", colorMap[current])}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="open">Open</SelectItem>
+        <SelectItem value="inProgress">In Progress</SelectItem>
+        <SelectItem value="resolved">Resolved</SelectItem>
+        <SelectItem value="closed">Closed</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+/* ─── Edit Site Dialog ─── */
+function EditSiteDialog({
+  site,
+  orgId,
+  userId,
+  userEmail,
+}: {
+  site: { id: string; name: string; address?: string; contactName?: string; contactPhone?: string; notes?: string };
+  orgId: string;
+  userId: string;
+  userEmail: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(site.name);
+  const [address, setAddress] = useState(site.address ?? "");
+  const [contactName, setContactName] = useState(site.contactName ?? "");
+  const [contactPhone, setContactPhone] = useState(site.contactPhone ?? "");
+  const [notes, setNotes] = useState(site.notes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const resetToSite = () => {
+    setName(site.name);
+    setAddress(site.address ?? "");
+    setContactName(site.contactName ?? "");
+    setContactPhone(site.contactPhone ?? "");
+    setNotes(site.notes ?? "");
+  };
+
+  const handleSave = async () => {
+    if (!name.trim() || !address.trim()) return;
+    setSaving(true);
+    try {
+      await updateSite(orgId, site.id, {
+        name: name.trim(),
+        address: address.trim(),
+        contactName: contactName.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
+        notes: notes.trim() || undefined,
+      });
+      await writeAuditEntry(orgId, {
+        action: "siteUpdated",
+        userId,
+        userEmail,
+        targetId: site.id,
+        description: `Updated site "${name.trim()}"`,
+      });
+      toast.success("Site updated");
+      setOpen(false);
+    } catch {
+      toast.error("Failed to update site");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) resetToSite(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Site
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Site</DialogTitle>
+          <DialogDescription>Update site information.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Site Name *</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Address *</label>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Contact Name</label>
+              <Input value={contactName} onChange={(e) => setContactName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Contact Phone</label>
+              <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notes</label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !name.trim() || !address.trim()}>
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { sites, loading: sitesLoading } = useSites();
   const { inspections, loading: inspLoading } = useInspections();
   const { actions, loading: actionsLoading } = useActions();
+  const { orgId } = useOrg();
+  const { user, profile } = useAuth();
+  const router = useRouter();
+
+  const [deleting, setDeleting] = useState(false);
 
   const site = sites.find((s) => s.id === id);
   // Match by siteId if available, fall back to name matching
@@ -117,7 +308,56 @@ export default function SiteDetailPage() {
     <div className="space-y-6">
       <Breadcrumbs items={[{ label: "Sites", href: "/sites" }, { label: site.name }]} />
 
-      <PageHeader title={site.name} />
+      <PageHeader
+        title={site.name}
+        actions={
+          orgId && user ? (
+            <div className="flex items-center gap-2">
+              <EditSiteDialog
+                site={{
+                  id: site.id,
+                  name: site.name,
+                  address: site.address ?? undefined,
+                  contactName: site.contactName ?? undefined,
+                  contactPhone: site.contactPhone ?? undefined,
+                  notes: site.notes ?? undefined,
+                }}
+                orgId={orgId}
+                userId={user.uid}
+                userEmail={profile?.email ?? ""}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={deleting}
+                onClick={async () => {
+                  if (!confirm(`Delete "${site.name}"? This cannot be undone.`)) return;
+                  setDeleting(true);
+                  try {
+                    await deleteSite(orgId, site.id);
+                    await writeAuditEntry(orgId, {
+                      action: "siteDeleted",
+                      userId: user.uid,
+                      userEmail: profile?.email ?? "",
+                      targetId: site.id,
+                      description: `Deleted site "${site.name}"`,
+                    });
+                    toast.success(`"${site.name}" deleted`);
+                    router.push("/sites");
+                  } catch {
+                    toast.error("Failed to delete site");
+                    setDeleting(false);
+                  }
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* Meta info */}
       <div className="flex flex-wrap gap-4">
@@ -282,7 +522,19 @@ export default function SiteDetailPage() {
                           {a.title}
                         </TableCell>
                         <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                        <TableCell><ActionStatusBadge status={a.status} /></TableCell>
+                        <TableCell>
+                          {orgId && user ? (
+                            <ActionStatusSelect
+                              actionId={a.id}
+                              current={a.status}
+                              orgId={orgId}
+                              userId={user.uid}
+                              userEmail={profile?.email ?? ""}
+                            />
+                          ) : (
+                            <Badge variant="outline" className="text-xs capitalize">{a.status}</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {a.assignee || "Unassigned"}
                         </TableCell>

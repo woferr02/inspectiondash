@@ -170,21 +170,36 @@ export default function ReportsPage() {
                 <FileBarChart className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-base">Executive Summary (PDF)</CardTitle>
+                <CardTitle className="text-base">Full Data Export (JSON)</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Coming soon
+                  All {inspections.length} inspections as structured data
                 </p>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              A formatted PDF report with charts, KPIs, and trend analysis
-              suitable for sharing with leadership and auditors.
+              Export your complete inspection dataset as JSON, including sections
+              and questions. Ideal for data integrations and custom reporting pipelines.
             </p>
-            <Button disabled variant="outline">
+            <Button
+              variant="outline"
+              disabled={inspections.length === 0}
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(inspections, null, 2)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `inspections-export-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success("JSON export downloaded");
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
-              Coming Soon
+              Download JSON
             </Button>
           </CardContent>
         </Card>

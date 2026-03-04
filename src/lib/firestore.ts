@@ -24,6 +24,7 @@ import type {
   Schedule,
   InspectionAnswer,
   ActionStatus,
+  ActionSeverity,
   OrgRole,
 } from "./types";
 
@@ -283,4 +284,145 @@ export async function writeAuditEntry(
     ...entry,
     timestamp: new Date().toISOString(),
   });
+}
+
+// ─── Site write operations ───
+
+/** Create a new site. Returns the generated document ID. */
+export async function addSite(
+  orgId: string,
+  data: {
+    name: string;
+    address: string;
+    contactName?: string;
+    contactPhone?: string;
+    notes?: string;
+  }
+): Promise<string> {
+  const colRef = orgCollection(orgId, "sites");
+  const docRef = await addDoc(colRef, {
+    ...data,
+    contactName: data.contactName ?? "",
+    contactPhone: data.contactPhone ?? "",
+    notes: data.notes ?? "",
+    inspectionCount: 0,
+    lastInspectionDate: null,
+    createdAt: new Date().toISOString(),
+  });
+  return docRef.id;
+}
+
+/** Update an existing site. */
+export async function updateSite(
+  orgId: string,
+  siteId: string,
+  data: {
+    name?: string;
+    address?: string;
+    contactName?: string;
+    contactPhone?: string;
+    notes?: string;
+  }
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "sites", siteId);
+  await updateDoc(ref, data);
+}
+
+/** Delete a site. */
+export async function deleteSite(
+  orgId: string,
+  siteId: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "sites", siteId);
+  await deleteDoc(ref);
+}
+
+// ─── Corrective action write operations ───
+
+/** Create a new corrective action from the dashboard. */
+export async function addAction(
+  orgId: string,
+  data: {
+    title: string;
+    description: string;
+    severity: ActionSeverity;
+    assignee?: string;
+    dueDate?: string;
+    siteId?: string;
+    siteName?: string;
+  }
+): Promise<string> {
+  const colRef = orgCollection(orgId, "corrective_actions");
+  const docRef = await addDoc(colRef, {
+    inspectionId: "",
+    sectionId: "",
+    questionId: "",
+    title: data.title,
+    description: data.description,
+    severity: data.severity,
+    status: "open" as ActionStatus,
+    assignee: data.assignee ?? "",
+    dueDate: data.dueDate ?? null,
+    createdAt: new Date().toISOString(),
+    resolvedAt: null,
+    photoIds: [],
+    siteId: data.siteId ?? "",
+    siteName: data.siteName ?? "",
+    source: "dashboard",
+  });
+  return docRef.id;
+}
+
+/** Update a corrective action's due date. */
+export async function updateActionDueDate(
+  orgId: string,
+  actionId: string,
+  dueDate: string | null
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "corrective_actions", actionId);
+  await updateDoc(ref, { dueDate });
+}
+
+// ─── Schedule write operations ───
+
+/** Create a new schedule. Returns the generated document ID. */
+export async function addSchedule(
+  orgId: string,
+  data: {
+    templateId: string;
+    templateName: string;
+    siteId: string;
+    siteName: string;
+    frequency: string;
+    assignee: string;
+    nextDue: string;
+  }
+): Promise<string> {
+  const colRef = orgCollection(orgId, "schedules");
+  const docRef = await addDoc(colRef, {
+    ...data,
+    isActive: true,
+    lastCompleted: null,
+    createdAt: new Date().toISOString(),
+  });
+  return docRef.id;
+}
+
+/** Toggle a schedule's active/paused state. */
+export async function toggleScheduleActive(
+  orgId: string,
+  scheduleId: string,
+  isActive: boolean
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "schedules", scheduleId);
+  await updateDoc(ref, { isActive });
+}
+
+/** Delete a schedule. */
+export async function deleteSchedule(
+  orgId: string,
+  scheduleId: string
+): Promise<void> {
+  const ref = doc(db, "organizations", orgId, "schedules", scheduleId);
+  await deleteDoc(ref);
 }
