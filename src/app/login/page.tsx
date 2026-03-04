@@ -24,6 +24,15 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
+  // Show nothing while checking auth state to prevent flash
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await signInWithEmail(email, password);

@@ -304,7 +304,12 @@ export default function TeamPage() {
       : []),
   ];
 
-  if (loading) return <TableSkeleton rows={5} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Team" subtitle="Loading…" />
+      <TableSkeleton rows={5} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

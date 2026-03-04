@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,16 @@ import { addIncident, updateIncidentStatus, deleteIncident, writeAuditEntry } fr
 import { exportToCsv } from "@/lib/csv-export";
 import { formatDate, cn } from "@/lib/utils";
 import type { IncidentType, IncidentSeverity, IncidentStatus, Incident } from "@/lib/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   AlertTriangle,
   Download,
@@ -229,8 +240,9 @@ function ReportIncidentDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Incident Title *</label>
+            <label htmlFor="incident-title" className="text-sm font-medium">Incident Title *</label>
             <Input
+              id="incident-title"
               placeholder="Brief description of what happened"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -239,9 +251,9 @@ function ReportIncidentDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Incident Type *</label>
+              <label htmlFor="incident-type" className="text-sm font-medium">Incident Type *</label>
               <Select value={type} onValueChange={(v: IncidentType) => setType(v)}>
-                <SelectTrigger>
+                <SelectTrigger id="incident-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,9 +264,9 @@ function ReportIncidentDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Severity *</label>
+              <label htmlFor="incident-severity" className="text-sm font-medium">Severity *</label>
               <Select value={severity} onValueChange={(v: IncidentSeverity) => setSeverity(v)}>
-                <SelectTrigger>
+                <SelectTrigger id="incident-severity">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,9 +280,9 @@ function ReportIncidentDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Site *</label>
+              <label htmlFor="incident-site" className="text-sm font-medium">Site *</label>
               <Select value={siteId} onValueChange={setSiteId}>
-                <SelectTrigger>
+                <SelectTrigger id="incident-site">
                   <SelectValue placeholder="Where did it happen?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -281,8 +293,9 @@ function ReportIncidentDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Date & Time of Incident *</label>
+              <label htmlFor="incident-occurred-at" className="text-sm font-medium">Date & Time of Incident *</label>
               <Input
+                id="incident-occurred-at"
                 type="datetime-local"
                 value={occurredAt}
                 onChange={(e) => setOccurredAt(e.target.value)}
@@ -291,8 +304,9 @@ function ReportIncidentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
+            <label htmlFor="incident-description" className="text-sm font-medium">Description</label>
             <Textarea
+              id="incident-description"
               placeholder="Full details of the incident — what happened, who was involved, contributing factors..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -302,8 +316,9 @@ function ReportIncidentDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Number of Injured Persons</label>
+              <label htmlFor="incident-injured" className="text-sm font-medium">Number of Injured Persons</label>
               <Input
+                id="incident-injured"
                 type="number"
                 min={0}
                 value={injured}
@@ -311,8 +326,9 @@ function ReportIncidentDialog({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Assigned Investigator</label>
+              <label htmlFor="incident-assignee" className="text-sm font-medium">Assigned Investigator</label>
               <Input
+                id="incident-assignee"
                 placeholder="Name of person investigating"
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
@@ -335,8 +351,9 @@ function ReportIncidentDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Immediate Actions Taken</label>
+            <label htmlFor="incident-immediate-actions" className="text-sm font-medium">Immediate Actions Taken</label>
             <Textarea
+              id="incident-immediate-actions"
               placeholder="What was done immediately after the incident?"
               value={immediateActions}
               onChange={(e) => setImmediateActions(e.target.value)}
@@ -364,6 +381,8 @@ export default function IncidentsPage() {
   const { sites } = useSites();
   const { orgId } = useOrg();
   const { user, profile } = useAuth();
+  const [deleteTarget, setDeleteTarget] = useState<Incident | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const stats = useMemo(() => {
     const open = incidents.filter((i) => i.status !== "closed").length;
@@ -395,7 +414,7 @@ export default function IncidentsPage() {
 
   const handleDelete = async (incident: Incident) => {
     if (!orgId || !user) return;
-    if (!confirm(`Delete incident "${incident.title}"?`)) return;
+    setDeleting(true);
     try {
       await deleteIncident(orgId, incident.id);
       await writeAuditEntry(orgId, {
@@ -408,6 +427,9 @@ export default function IncidentsPage() {
       toast.success("Incident deleted");
     } catch {
       toast.error("Failed to delete incident");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -508,7 +530,7 @@ export default function IncidentsPage() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={(e) => { e.stopPropagation(); handleDelete(i); }}
+              onClick={(e) => { e.stopPropagation(); setDeleteTarget(i); }}
               title="Delete incident"
             >
               <Trash2 className="h-4 w-4" />
@@ -531,7 +553,12 @@ export default function IncidentsPage() {
     },
   ];
 
-  if (loading) return <TableSkeleton rows={6} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Incidents" subtitle="Loading…" />
+      <TableSkeleton rows={6} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -559,23 +586,52 @@ export default function IncidentsPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-2xl font-bold">{stats.total}</p>
-          <p className="text-xs text-muted-foreground">Total Incidents</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className={cn("text-2xl font-bold", stats.open > 0 && "text-amber-600")}>{stats.open}</p>
-          <p className="text-xs text-muted-foreground">Open</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className={cn("text-2xl font-bold", stats.riddor > 0 && "text-red-600")}>{stats.riddor}</p>
-          <p className="text-xs text-muted-foreground">RIDDOR Reportable</p>
-        </div>
-        <div className="rounded-lg border bg-card p-4 text-center">
-          <p className="text-2xl font-bold">{stats.thisMonth}</p>
-          <p className="text-xs text-muted-foreground">This Month</p>
-        </div>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-xs text-muted-foreground">Total Incidents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className={cn("text-2xl font-bold", stats.open > 0 && "text-amber-600")}>{stats.open}</p>
+            <p className="text-xs text-muted-foreground">Open</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className={cn("text-2xl font-bold", stats.riddor > 0 && "text-red-600")}>{stats.riddor}</p>
+            <p className="text-xs text-muted-foreground">RIDDOR Reportable</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold">{stats.thisMonth}</p>
+            <p className="text-xs text-muted-foreground">This Month</p>
+          </CardContent>
+        </Card>
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Incident</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete incident &ldquo;{deleteTarget?.title}&rdquo;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DataTable
         data={incidents}

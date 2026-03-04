@@ -97,16 +97,18 @@ function AddSiteDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Site Name *</label>
+            <label htmlFor="site-name" className="text-sm font-medium">Site Name *</label>
             <Input
+              id="site-name"
               placeholder="e.g. Main Warehouse"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Address *</label>
+            <label htmlFor="site-address" className="text-sm font-medium">Address *</label>
             <Input
+              id="site-address"
               placeholder="Full street address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -114,16 +116,18 @@ function AddSiteDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Contact Name</label>
+              <label htmlFor="site-contact-name" className="text-sm font-medium">Contact Name</label>
               <Input
+                id="site-contact-name"
                 placeholder="Site contact person"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Contact Phone</label>
+              <label htmlFor="site-contact-phone" className="text-sm font-medium">Contact Phone</label>
               <Input
+                id="site-contact-phone"
                 placeholder="+44 ..."
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
@@ -131,8 +135,9 @@ function AddSiteDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Notes</label>
+            <label htmlFor="site-notes" className="text-sm font-medium">Notes</label>
             <Textarea
+              id="site-notes"
               placeholder="Access instructions, parking, special requirements..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -218,7 +223,12 @@ export default function SitesPage() {
     toast.success("Sites exported to CSV");
   };
 
-  if (loading) return <TableSkeleton rows={8} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Sites" subtitle="Loading…" />
+      <TableSkeleton rows={8} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

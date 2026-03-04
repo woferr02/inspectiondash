@@ -77,7 +77,12 @@ const columns: Column<AuditEntry>[] = [
 export default function AuditLogPage() {
   const { entries, loading, error } = useAuditLog();
 
-  if (loading) return <TableSkeleton rows={10} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Audit Log" subtitle="Loading…" />
+      <TableSkeleton rows={10} />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

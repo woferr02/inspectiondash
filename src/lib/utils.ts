@@ -18,24 +18,24 @@ export function scoreColor(score: number | null): string {
 
 export function scoreBgColor(score: number | null): string {
   if (score === null) return "bg-muted";
-  if (score >= 80) return "bg-emerald-50 text-emerald-700";
-  if (score >= 50) return "bg-amber-50 text-amber-700";
-  return "bg-red-50 text-red-700";
+  if (score >= 80) return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400";
+  if (score >= 50) return "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400";
+  return "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400";
 }
 
 // ─── Status badge helpers ───
 export function inspectionStatusColor(status: InspectionStatus): string {
   switch (status) {
     case "draft":
-      return "bg-slate-100 text-slate-600";
+      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
     case "inProgress":
-      return "bg-blue-50 text-blue-700";
+      return "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400";
     case "completed":
-      return "bg-emerald-50 text-emerald-700";
+      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400";
     case "submitted":
-      return "bg-teal-50 text-teal-700";
+      return "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-400";
     case "archived":
-      return "bg-slate-100 text-slate-500";
+      return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
   }
 }
 
@@ -57,13 +57,13 @@ export function inspectionStatusLabel(status: InspectionStatus): string {
 export function severityColor(severity: ActionSeverity): string {
   switch (severity) {
     case "low":
-      return "bg-emerald-50 text-emerald-700";
+      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400";
     case "medium":
-      return "bg-amber-50 text-amber-700";
+      return "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400";
     case "high":
-      return "bg-orange-50 text-orange-700";
+      return "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400";
     case "critical":
-      return "bg-red-50 text-red-700";
+      return "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400";
   }
 }
 
@@ -83,13 +83,13 @@ export function severityLabel(severity: ActionSeverity): string {
 export function actionStatusColor(status: ActionStatus): string {
   switch (status) {
     case "open":
-      return "bg-red-50 text-red-700";
+      return "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400";
     case "inProgress":
-      return "bg-amber-50 text-amber-700";
+      return "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400";
     case "resolved":
-      return "bg-emerald-50 text-emerald-700";
+      return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400";
     case "closed":
-      return "bg-slate-100 text-slate-500";
+      return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
   }
 }
 

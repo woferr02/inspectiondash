@@ -352,16 +352,18 @@ function CreateActionDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Title *</label>
+            <label htmlFor="action-title" className="text-sm font-medium">Title *</label>
             <Input
+              id="action-title"
               placeholder="e.g. Fire extinguisher expired"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
+            <label htmlFor="action-description" className="text-sm font-medium">Description</label>
             <Textarea
+              id="action-description"
               placeholder="Details about the finding..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -370,9 +372,9 @@ function CreateActionDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Severity</label>
+              <label htmlFor="action-severity" className="text-sm font-medium">Severity</label>
               <Select value={severity} onValueChange={(v) => setSeverity(v as ActionSeverity)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="action-severity"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {severityOptions.map((s) => (
                     <SelectItem key={s} value={s}>{severityLabel(s)}</SelectItem>
@@ -381,8 +383,9 @@ function CreateActionDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Due Date</label>
+              <label htmlFor="action-due-date" className="text-sm font-medium">Due Date</label>
               <Input
+                id="action-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -391,17 +394,18 @@ function CreateActionDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Assignee</label>
+              <label htmlFor="action-assignee" className="text-sm font-medium">Assignee</label>
               <Input
+                id="action-assignee"
                 placeholder="Person responsible"
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Site</label>
+              <label htmlFor="action-site" className="text-sm font-medium">Site</label>
               <Select value={siteId} onValueChange={setSiteId}>
-                <SelectTrigger><SelectValue placeholder="Select site..." /></SelectTrigger>
+                <SelectTrigger id="action-site"><SelectValue placeholder="Select site..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No site</SelectItem>
                   {sites.map((s) => (

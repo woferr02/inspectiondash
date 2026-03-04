@@ -31,13 +31,18 @@ import { Button } from "@/components/ui/button";
 import { NotificationCenter } from "./notification-center";
 import { NavLinks } from "./sidebar";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(navigator.userAgent.includes("Mac"));
+  }, []);
 
   const initials =
     profile?.displayName
@@ -91,7 +96,7 @@ export function Header() {
           <Search className="h-4 w-4" />
           <span className="text-xs">Search...</span>
           <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
-            ⌘K
+            {isMac ? "⌘K" : "Ctrl+K"}
           </kbd>
         </Button>
         <Button

@@ -29,6 +29,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Download, Calendar, Plus, Pause, Play, Trash2 } from "lucide-react";
@@ -134,17 +144,18 @@ function CreateScheduleDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Template / Inspection Name *</label>
+            <label htmlFor="schedule-template-name" className="text-sm font-medium">Template / Inspection Name *</label>
             <Input
+              id="schedule-template-name"
               placeholder="e.g. Fire Safety Weekly Check"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Site *</label>
+            <label htmlFor="schedule-site" className="text-sm font-medium">Site *</label>
             <Select value={siteId} onValueChange={setSiteId}>
-              <SelectTrigger>
+              <SelectTrigger id="schedule-site">
                 <SelectValue placeholder="Select a site" />
               </SelectTrigger>
               <SelectContent>
@@ -158,9 +169,9 @@ function CreateScheduleDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Frequency *</label>
+              <label htmlFor="schedule-frequency" className="text-sm font-medium">Frequency *</label>
               <Select value={frequency} onValueChange={setFrequency}>
-                <SelectTrigger>
+                <SelectTrigger id="schedule-frequency">
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,8 +182,9 @@ function CreateScheduleDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">First Due Date *</label>
+              <label htmlFor="schedule-first-due-date" className="text-sm font-medium">First Due Date *</label>
               <Input
+                id="schedule-first-due-date"
                 type="date"
                 value={nextDue}
                 onChange={(e) => setNextDue(e.target.value)}
@@ -180,8 +192,9 @@ function CreateScheduleDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Assignee</label>
+            <label htmlFor="schedule-assignee" className="text-sm font-medium">Assignee</label>
             <Input
+              id="schedule-assignee"
               placeholder="Person or team responsible"
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
@@ -215,6 +228,7 @@ function ScheduleRowActions({
   userEmail: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleToggle = async () => {
     setBusy(true);
@@ -237,7 +251,6 @@ function ScheduleRowActions({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete schedule "${schedule.templateName ?? schedule.templateId}" at ${schedule.resolvedSiteName}?`)) return;
     setBusy(true);
     try {
       await deleteSchedule(orgId, schedule.id);
@@ -253,6 +266,7 @@ function ScheduleRowActions({
       toast.error("Failed to delete schedule");
     } finally {
       setBusy(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -277,11 +291,28 @@ function ScheduleRowActions({
         size="icon"
         className="h-8 w-8 text-destructive hover:text-destructive"
         disabled={busy}
-        onClick={handleDelete}
+        onClick={() => setConfirmDelete(true)}
         title="Delete schedule"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete schedule &ldquo;{schedule.templateName ?? schedule.templateId}&rdquo; at {schedule.resolvedSiteName}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={busy} onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {busy ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -432,7 +463,12 @@ export default function SchedulesPage() {
     toast.success("Schedules exported");
   };
 
-  if (loading) return <TableSkeleton rows={5} />;
+  if (loading) return (
+    <div className="space-y-6">
+      <PageHeader title="Schedules" subtitle="Loading…" />
+      <TableSkeleton rows={5} />
+    </div>
+  );
 
   const overdue = enriched.filter((s) => {
     try { return isPast(parseISO(s.nextDue)) && !isToday(parseISO(s.nextDue)); } catch { return false; }

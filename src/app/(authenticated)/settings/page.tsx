@@ -161,20 +161,21 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Organization Name</label>
+              <label htmlFor="setting-org-name" className="text-sm font-medium">Organization Name</label>
               {isAdmin ? (
                 <Input
+                  id="setting-org-name"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="Organization name"
                 />
               ) : (
-                <Input value={org?.name ?? ""} readOnly className="bg-muted" />
+                <Input id="setting-org-name" value={org?.name ?? ""} readOnly className="bg-muted" />
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Organization ID</label>
-              <Input value={org?.id ?? ""} readOnly className="bg-muted font-mono text-xs" />
+              <label htmlFor="setting-org-id" className="text-sm font-medium">Organization ID</label>
+              <Input id="setting-org-id" value={org?.id ?? ""} readOnly className="bg-muted font-mono text-xs" />
             </div>
           </div>
           {currentUserRole && (
@@ -209,48 +210,53 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Display Name</label>
+              <label htmlFor="setting-display-name" className="text-sm font-medium">Display Name</label>
               <Input
+                id="setting-display-name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input value={profile?.email ?? ""} readOnly className="bg-muted" />
+              <label htmlFor="setting-email" className="text-sm font-medium">Email</label>
+              <Input id="setting-email" value={profile?.email ?? ""} readOnly className="bg-muted" />
               <p className="text-xs text-muted-foreground">Email cannot be changed here</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1.5">
+              <label htmlFor="setting-job-title" className="text-sm font-medium flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" /> Job Title
               </label>
               <Input
+                id="setting-job-title"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
                 placeholder="e.g. Health & Safety Manager"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1.5">
+              <label htmlFor="setting-country" className="text-sm font-medium flex items-center gap-1.5">
                 <Globe className="h-3.5 w-3.5" /> Country
               </label>
               <Input
+                id="setting-country"
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 placeholder="e.g. United Kingdom"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Industry</label>
+              <label htmlFor="setting-industry" className="text-sm font-medium">Industry</label>
               <Input
+                id="setting-industry"
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
                 placeholder="e.g. Construction"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Company</label>
+              <label htmlFor="setting-company" className="text-sm font-medium">Company</label>
               <Input
+                id="setting-company"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="e.g. Acme Safety Ltd"

@@ -37,6 +37,8 @@ type NavItem = {
   minRole: OrgRole;
   /** When true, renders a subtle separator line ABOVE this item */
   separator?: boolean;
+  /** Group heading rendered above this item (only when separator is true) */
+  groupLabel?: string;
 };
 
 const ROLE_RANK: Record<OrgRole, number> = {
@@ -53,13 +55,13 @@ export const navItems: NavItem[] = [
   { label: "Actions", href: routes.actions, icon: AlertTriangle, minRole: "inspector" },
   { label: "Incidents", href: routes.incidents, icon: ShieldAlert, minRole: "inspector" },
   // ── Intelligence ──
-  { label: "Findings", href: routes.findings, icon: Search, minRole: "manager", separator: true },
+  { label: "Findings", href: routes.findings, icon: Search, minRole: "manager", separator: true, groupLabel: "Insights" },
   { label: "Analytics", href: routes.analytics, icon: BarChart3, minRole: "manager" },
   // ── Configuration ──
-  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager", separator: true },
+  { label: "Schedules", href: routes.schedules, icon: Calendar, minRole: "manager", separator: true, groupLabel: "Manage" },
   { label: "Team", href: routes.team, icon: Users, minRole: "admin" },
   // ── Admin ──
-  { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin", separator: true },
+  { label: "Audit Log", href: routes.auditLog, icon: ScrollText, minRole: "admin", separator: true, groupLabel: "Admin" },
   { label: "Settings", href: routes.settings, icon: Settings, minRole: "admin" },
 ];
 
@@ -112,7 +114,14 @@ export function NavLinks({
         );
 
         const separator = showSep ? (
-          <div className="my-2 mx-3 border-t border-sidebar-border/40" />
+          <div>
+            <div className="my-2 mx-3 border-t border-sidebar-border/40" />
+            {!collapsed && item.groupLabel && (
+              <span className="block px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                {item.groupLabel}
+              </span>
+            )}
+          </div>
         ) : null;
 
         if (collapsed) {
